@@ -1,6 +1,5 @@
 import pygame
 import time
-import threading
 import numpy as np  
 pygame.init()
 
@@ -83,7 +82,7 @@ class Car(object):
     def create(self,img):
         game.window.blit(img, (self.x,self.y))
         self.hitbox = (self.x , self.y, self.width, self.height)
-        pygame.draw.rect(game.window,(255,0,0),self.hitbox,2)
+        # pygame.draw.rect(game.window,(255,0,0),self.hitbox,2)
         
     
     def hit(self):
@@ -93,6 +92,8 @@ class Car(object):
             game.life_positions.pop()
         game.player_lifes -=1
         obstacles.all = []
+        obstacles.trashs = []
+        obstacles.rocks = []
         game.restarting = True
         
     def in_road(self,side):
@@ -137,59 +138,120 @@ class Car(object):
             self.bottom = True     
 
     def collide(self,obstacle):
-        if (car.y - car.height/2) < (obstacle.hitbox[1] + obstacle.hitbox[3]/2) and (car.y -car.height/2) > (obstacle.hitbox[1] - obstacle.hitbox[3]/2):
-            if(car.x + car.width/2) > (obstacle.hitbox[0]-obstacle.hitbox[2]/2) and (car.x + car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
-                return True
-            elif(car.x-car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2) and (car.x + car.width/2) > (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
-                return True
+
+        #check collision with obtacles 64x64
+        if obstacle.hitbox[2] == 64 and obstacle.hitbox[3] == 64:
+            if (car.y - car.height/2) < (obstacle.hitbox[1] + obstacle.hitbox[3]/2) and (car.y -car.height/2) > (obstacle.hitbox[1] - obstacle.hitbox[3]/2):
+                if(car.x + car.width/2) > (obstacle.hitbox[0]-obstacle.hitbox[2]/2) and (car.x + car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
+                    return True
+                elif(car.x-car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2) and (car.x + car.width/2) > (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
+                    return True
+                else:
+                    return False
+            elif ((car.y + car.height/2)< (obstacle.hitbox[1] + obstacle.hitbox[3]/2) and (car.y + car.height/2) > (obstacle.hitbox[1] - obstacle.hitbox[3]/2)):
+                if(car.x + car.width/2) > (obstacle.hitbox[0]-obstacle.hitbox[2]/2) and (car.x + car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
+                    return True
+                elif(car.x-car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2) and (car.x + car.width/2) > (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
+                    return True
+                else:
+                    return False
             else:
                 return False
-        elif ((car.y + car.height/2)< (obstacle.hitbox[1] + obstacle.hitbox[3]/2) and (car.y + car.height/2) > (obstacle.hitbox[1] - obstacle.hitbox[3]/2)):
-            if(car.x + car.width/2) > (obstacle.hitbox[0]-obstacle.hitbox[2]/2) and (car.x + car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
-                return True
-            elif(car.x-car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2) and (car.x + car.width/2) > (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
-                return True
-            else:
-                return False
+        
+        #check collision with obstacles 128x128
         else:
-            return False
+            if (car.y - car.height/2) < (obstacle.hitbox[1] + obstacle.hitbox[3]/2) and (car.y -car.height/2) > (obstacle.hitbox[1] - obstacle.hitbox[3]/2):
+                if(car.x + car.width/2) > (obstacle.hitbox[0]-obstacle.hitbox[2]/4) and (car.x + car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/4):
+                    return True
+                elif(car.x-car.width) < (obstacle.hitbox[0]+obstacle.hitbox[2]/2) and (car.x + car.width) > (obstacle.hitbox[0]+obstacle.hitbox[2]/2):
+                    return True
+                else:
+                    return False
+            elif ((car.y + car.height/2) < (obstacle.hitbox[1] + obstacle.hitbox[3]/4) and (car.y + car.height/2) > (obstacle.hitbox[1] - obstacle.hitbox[3]/4)):
+                if(car.x + car.width/2) > (obstacle.hitbox[0]-obstacle.hitbox[2]/4) and (car.x + car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/4):
+                    return True
+                elif(car.x-car.width/2) < (obstacle.hitbox[0]+obstacle.hitbox[2]/4) and (car.x + car.width/2) > (obstacle.hitbox[0]+obstacle.hitbox[2]/4):
+                    return True
+                else:
+                    return False
+            else:
+                return False
        
 
 class Obstacles(object):
     def __init__(self):
         self.all = []
+        self.trashs = []
+        self.rocks = []
     
-    def create(self):
-        if len(self.all) < 4:
+    def spawn_obstacles(self):
+        if len(self.trashs) < 4:
             if np.random.random(1) < 0.03:
                 new_trash = Trash(64,64)
                 new_trash.create()
                 self.all.append(new_trash)
+                self.trashs.append(new_trash)
+        
+        if len(self.rocks) < 2:
+            if np.random.random(1) < 0.03:
+                rock = Rock(128,128)
+                rock.create()
+                self.all.append(rock)
+                self.rocks.append(rock)
+            
+    def create(self):
+        self.spawn_obstacles()
         
         #remove all obstacles if max crash nums        
         if car.crashCount >= 3:
             self.all = []
+            self.trashs = []
+            self.rocks = []
 
 class Trash(object):
     def __init__(self,width,height):
-        self.x = np.random.randint(game.width - 100)
-        self.y = -100
+        self.x = np.random.randint(190,game.width - 200)
+        self.y = -150
         self.width = width
         self.height = height
         self.hitbox = (self.x , self.y, self.width, self.height)
 
     def create(self):
         self.move()
+        print(self.x)
         trash_blit = game.window.blit(trash, (self.x,self.y))
         self.hitbox = (self.x , self.y, self.width, self.height)
-        pygame.draw.rect(game.window,(255,0,0),self.hitbox,2)
+        # pygame.draw.rect(game.window,(0,0,0,0),self.hitbox,1)
         pygame.display.update(trash_blit)
     
     def move(self):
         self.y += 5
-        if self.y > 600:
-            self.y -= 700
-            self.x = np.random.randint(game.width - 100)
+        if self.y > 650:
+            self.y -= 800
+            self.x = np.random.randint(190,game.width - 200)
+            print(self.x)
+
+class Rock(object):
+    def __init__(self,width,height):
+        self.x = np.random.randint(190,game.width - 200)
+        self.y = -150
+        self.width = width
+        self.height = height
+        self.hitbox = (self.x , self.y, self.width, self.height)
+
+    def create(self):
+        self.move()
+        rock_blit = game.window.blit(rock, (self.x,self.y))
+        # pygame.draw.rect(game.window,(0,0,0),self.hitbox,1)
+        self.hitbox = (self.x , self.y, self.width, self.height)
+        pygame.display.update(rock_blit)
+    
+    def move(self):
+        self.y += 5
+        if self.y > 650:
+            self.y -= 800
+            self.x = np.random.randint(190,game.width - 200)
+            print(self.x)
 
 # start the game
 game = Game(840,650,"Car crash")
@@ -202,6 +264,7 @@ carNormal = pygame.image.load("car2.png").convert_alpha()
 lifes = pygame.image.load("lifes2.png").convert_alpha()
 background_img = pygame.image.load("bg.png").convert_alpha()
 trash = pygame.image.load("t.png").convert_alpha()
+rock = pygame.image.load("rock.png").convert_alpha()
 running = True
 
 
@@ -221,10 +284,15 @@ while running:
             if current_time - start_time > 1000:
                 restart_time -= 1
                 start_time = current_time
+                obstacles.all = []
+                obstacles.trashs = []
+                obstacles.rocks = []
         else :
             game.restarting = False
             restart_time = 5
             obstacles.all = []
+            obstacles.trashs = []
+            obstacles.rocks = []
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
