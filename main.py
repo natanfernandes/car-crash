@@ -24,12 +24,13 @@ class Game(object):
         self.caption = pygame.display.set_caption(title)
         self.game_font = pygame.font.Font("font/PressStart2P-Regular.ttf", 25)
         self.player_lifes = 3
+        self.km = 0
         self.life_positions = [(50,50),(100,50),(150,50)]
         self.bg = pygame.image.load("bg.png").convert_alpha()
         self.restarting = False
     
-    def start(self,move):
-        self.window.blit(self.bg, (0, move))
+    def start(self):
+        self.window.blit(self.bg, (0, 0))
         
         if self.restarting:
             self.bg_move('STOP')
@@ -37,11 +38,16 @@ class Game(object):
             self.bg_move('START')
         
         batidas = self.game_font.render('Batidas:' + str(car.crashCount), 1, (255,0,0))
+        km = self.game_font.render("KM's :" + str(self.km), 1, (255,0,0))
         self.window.blit(batidas,(500,50))
+        self.window.blit(km,(500,20))
        
         self.display_lifes()
+
         obstacles.create()
       
+        self.increment_km()
+
         if car.left:
             car.create(curveLeft)
         elif car.right:
@@ -64,6 +70,9 @@ class Game(object):
         for position in self.life_positions:
             game.window.blit(lifes,position)
     
+    def increment_km(self):
+        if not self.restarting:
+            self.km += game_speed/100
         
 
 class Car(object):
@@ -96,46 +105,61 @@ class Car(object):
         obstacles.rocks = []
         game.restarting = True
         
-    def in_road(self,side):
-        if side == 'L':
+    def in_road(self,orientation):
+        if orientation == 'L':
             if self.x > self.vel+130:
                 return True
             else:
                 return False
-        elif side == 'R':
+        elif orientation == 'R':
             if self.x < (game.width - self.width - 150):
                 return True
             else:
                 return False
-    
+        elif orientation == 'UP':
+            if self.y > 0:
+                return True
+            else:
+                return False
+                
+        elif orientation == 'DOWN':
+            if self.y < (game.height - self.height-20):
+                return True
+            else:
+                return False
+
     def move_to_start(self):
         self.x = (game.width/2)
         self.y = (game.height-100)
 
     def move(self,orientation):
-        if orientation == 'L':
-            self.x = self.x - self.vel
-            self.left = True
-            self.right = False
-            self.bottom = False
+        if game.restarting:
+            return
+        else:
+            if orientation == 'L':
+                self.x = self.x - self.vel
+                self.left = True
+                self.right = False
+                self.bottom = False
 
-        elif orientation == 'R':
-            self.x = self.x + self.vel
-            self.left = False
-            self.right = True
-            self.bottom = False
+            elif orientation == 'R':
+                self.x = self.x + self.vel
+                self.left = False
+                self.right = True
+                self.bottom = False
 
-        elif orientation == 'UP':
-            self.y = self.y - self.vel
-            self.left = False
-            self.right = False
-            self.bottom = False
+            elif orientation == 'UP':
+                self.y = self.y - self.vel
+                self.left = False
+                self.right = False
+                self.bottom = False
 
-        elif orientation == 'DOWN':
-            self.y = self.y + self.vel
-            self.left = False
-            self.right = False
-            self.bottom = True     
+            elif orientation == 'DOWN':
+                self.y = self.y + self.vel
+                self.left = False
+                self.right = False
+                self.bottom = True     
+
 
     def collide(self,obstacle):
 
@@ -265,22 +289,23 @@ lifes = pygame.image.load("lifes2.png").convert_alpha()
 background_img = pygame.image.load("bg.png").convert_alpha()
 trash = pygame.image.load("t.png").convert_alpha()
 rock = pygame.image.load("rock.png").convert_alpha()
+flag = pygame.image.load("flag.png").convert_alpha()
 running = True
 
 
-car = Car((game.height-100),(game.width/2),64,64,20)
+car = Car((game.height-100),(game.width/2),64,64,15)
 obstacles = Obstacles()
 start_time = pygame.time.get_ticks()
 restart_time = 5
-speed = 0
+game_speed = 20
 while running:
     current_time = pygame.time.get_ticks()
     if game.restarting:
         if restart_time > 0:
             batidas = game.game_font.render('Você bateu, voltando em :' + str(restart_time), 1, (255,0,0))
-            game.window.blit(batidas,(100,250))
+            game.window.blit(flag,(100,250))
+            game.window.blit(batidas,(100,150))
             pygame.display.update()
-            print(current_time - start_time,restart_time,game.restarting)
             if current_time - start_time > 1000:
                 restart_time -= 1
                 start_time = current_time
@@ -293,7 +318,7 @@ while running:
             obstacles.all = []
             obstacles.trashs = []
             obstacles.rocks = []
-    
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -316,13 +341,13 @@ while running:
     if keys[pygame.K_RIGHT] and car.in_road('R'):
         car.move('R')
 
-    if keys[pygame.K_UP] and car.y > 0:
+    if keys[pygame.K_UP] and car.in_road('UP'):
         car.move('UP')
 
-    if keys[pygame.K_DOWN] and car.y < (game.height - car.height-20):
+    if keys[pygame.K_DOWN] and car.in_road('DOWN'):
         car.move('DOWN')
-    
-    game.start(speed)
+
+    game.start()
     clock.tick(30)
     pygame.display.update()
 
